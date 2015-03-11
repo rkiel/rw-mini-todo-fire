@@ -18,23 +18,31 @@ function handleRemoveItem(index){
   this.firebaseRef.child(item.key).remove();
 }
 
-function componentDidMount(){
-  this.firebaseRef = new Firebase("https://rkiel-mini-todo.firebaseio.com//todos");
-  this.firebaseRef.on('child_added', function(snapshot){
-    this.setState({
-      list: this.state.list.concat([{key: snapshot.key(), val: snapshot.val()}])
-    })
-  }.bind(this));
+// child_added is triggered once for each existing child and
+// then again every time a new child is added to the specified path.
+// The event callback is passed a snapshot containing the new child's data.
+function childAddedListener(snapshot) {
+  console.log('child_added ' + snapshot.val());
+  this.setState({
+    list: this.state.list.concat([{key: snapshot.key(), val: snapshot.val()}])
+  });
+}
 
-  this.firebaseRef.on('child_removed', function(snapshot){
-    var key = snapshot.key();
-    var newList = this.state.list.filter(function(item){
-      return item.key !== key;
-    });
-    this.setState({
-      list: newList
-    });
-  }.bind(this));
+function childRemovedListener(snapshot) {
+  console.log('child_removed ' + snapshot.key());
+  var key = snapshot.key();
+  var newList = this.state.list.filter(function(item){
+    return item.key !== key;
+  });
+  this.setState({
+    list: newList
+  });
+}
+
+function componentDidMount(){
+  this.firebaseRef = new Firebase("https://rkiel-mini-todo.firebaseio.com/todos");
+  this.firebaseRef.on('child_added',   this.childAddedListener); // don't need bind()
+  this.firebaseRef.on('child_removed', this.childRemovedListener); // don't need bind()
 }
 
 function render(){
@@ -50,11 +58,13 @@ function render(){
 }
 
 var ListContainer = React.createClass({
-  getInitialState:  getInitialState,
-  handleAddItem:    handleAddItem,
-  handleRemoveItem: handleRemoveItem,
-  componentDidMount: componentDidMount,
-  render:           render
+  getInitialState:      getInitialState,
+  handleAddItem:        handleAddItem,
+  handleRemoveItem:     handleRemoveItem,
+  componentDidMount:    componentDidMount,
+  childAddedListener:   childAddedListener,
+  childRemovedListener: childRemovedListener,
+  render:               render
 });
 
 module.exports = ListContainer;
